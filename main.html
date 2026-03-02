@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Minesweeper</title>
+  <style>
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 60px);
+      gap: 0px;
+      margin: 20px;
+    }
+
+    .grid button {
+      width: 60px;
+      height: 60px;
+      font-size: 30px;
+      background-color: white;
+      border: 2px solid black;
+      border-radius: 0px;
+      cursor: pointer;
+    }
+    
+    #bigButton {
+      width: calc(5 * 60px);
+      height: 60px;
+      font-size: 30px;
+      background-color: white;
+      border: 2px solid black;
+      cursor: pointer;
+      margin: 0px 0 0 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid" id="buttonGrid"></div>
+
+  <script>
+    var gridUI = document.getElementById("buttonGrid");
+    var gameOn = false;
+    var gameOver = false;
+    var grid;
+    var visGrid;
+    var solvedGrid;
+    const rows = 5; // determine size of minesweeper
+    const cols = 5;
+    const mines = Math.round((rows * cols) / 6);
+    const clicked = function(row, col, button, bot) {
+      if (bot == true) {
+        if (visGrid[row - 1][col - 1] == solvedGrid[row - 1][col - 1]) {
+          return
+        } // ignore filled
+        if (solvedGrid[row - 1][col - 1] == 0) {
+          button.textContent = "";
+          visGrid[row - 1][col - 1] = solvedGrid[row - 1][col - 1];
+          button.style.backgroundColor = "#48fab0";
+          // autofill
+          for (let i = 0; i < gridUI.children.length; i++) {
+            const button = gridUI.children[i];
+            let r = 1;
+            let c = 1;
+            c = (i % cols) + 1;
+            r = Math.floor(i / cols) + 1;
+            if (r == row + 1 || r == row || r == row - 1) {
+              if ((c == col + 1 || c == col || c == col - 1) && (r != row || c != col)) {
+                clicked(r, c, button, true);
+              }
+            }
+          }
+        } else {
+          button.textContent = solvedGrid[row - 1][col - 1];
+          visGrid[row - 1][col - 1] = solvedGrid[row - 1][col - 1];
+          button.style.backgroundColor = "#1fbf7c";
+        }
+        // check for win just in case
+        let arraysAreEqual = true;
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                if (visGrid[i][j] != solvedGrid[i][j]) {
+                    if (visGrid[i][j] != -1 || solvedGrid[i][j] != 9) {
+                        arraysAreEqual = false;
+                        break; // exit inner loop early
+                    }
+                }
+            }
+            if (!arraysAreEqual) break; // exit outer loop early
+        } // loop to check
+        if (arraysAreEqual) { // YOU WIN!
+          // show UI
+          const bigButton = document.createElement("button");
+          bigButton.id = "bigButton";
+          bigButton.textContent = "You Won!";
+          bigButton.style.backgroundColor = "#1fe615";
+          gridUI.parentNode.appendChild(bigButton);
+          gameOver = true;
+          bigButton.addEventListener("click", function() {
+            gameOver = false;
+            gameOn = false;
+            bigButton.remove();
+            // reset
+            for (let i = 0; i < gridUI.children.length; i++) {
+              const button = gridUI.children[i];
+              button.textContent = "";
+              button.style.backgroundColor = "#f5b651";
+            }
+          });
+        } // you win
+        return;
+      } // reveal the autofilled tiles only
+      if (gameOver == true) {
+        return;
+      } // do nothing
+      if (gameOn == false) {
+        // make 3 arrays
+        grid = Array.from({ length: rows }, () => Array(cols).fill(0)); // contains mines
+        visGrid = Array.from({ length: rows }, () => Array(cols).fill(-1)); // shown to player
+        solvedGrid = Array.from({ length: rows }, () => Array(cols).fill(0)); // final complete board
+        
+        // randomly assign mines in grid
+        let onesPlaced = 0;
+        while (onesPlaced < mines) {
+          let r = Math.floor(Math.random() * rows);
+          let c = Math.floor(Math.random() * cols);
+    
+          if (grid[r][c] === 0 && (r != (row - 1) || c != (col - 1))) { // no spawning on a mine
+            grid[r][c] = 1;
+            onesPlaced++;
+          }
+        }
+        
+        // solve the solvedGrid
+        let dr = [-1, -1, -1,  0, 0,  1, 1, 1]; // directions
+        let dc = [-1,  0,  1, -1, 1, -1, 0, 1];
+        
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (grid[r][c] == 1) {
+                    // If this square is a mine, mark as 9
+                    solvedGrid[r][c] = 9;
+                } else {
+                    let count = 0;
+                    // Check all 8 neighbors
+                    for (let k = 0; k < 8; k++) {
+                        let nr = r + dr[k];
+                        let nc = c + dc[k];
+                        // Stay inside bounds
+                        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                            if (grid[nr][nc] == 1) {
+                                count++;
+                            }
+                        }
+                    }
+                    solvedGrid[r][c] = count;
+                }
+            }
+        }
+        gameOn = true;
+      } // begin minesweeper
+      // reveal tile
+      if (solvedGrid[row - 1][col - 1] == 0) {
+        button.textContent = "";
+        visGrid[row - 1][col - 1] = solvedGrid[row - 1][col - 1];
+        button.style.backgroundColor = "#48fab0";
+        
+        // autofill
+        for (let i = 0; i < gridUI.children.length; i++) {
+          const button = gridUI.children[i];
+          let r = 1;
+          let c = 1;
+          c = (i % cols) + 1;
+          r = Math.floor(i / cols) + 1;
+          if (r == row + 1 || r == row || r == row - 1) {
+            if ((c == col + 1 || c == col || c == col - 1) && (r != row || c != col)) {
+              clicked(r, c, button, true);
+            }
+          }
+        }
+      } else if (solvedGrid[row - 1][col - 1] == 9) {
+        button.textContent = "";
+        visGrid[row - 1][col - 1] = solvedGrid[row - 1][col - 1];
+        button.style.backgroundColor = "red";
+        
+        // sudden death
+        for (let i = 0; i < gridUI.children.length; i++) {
+          const button = gridUI.children[i];
+          let r = 1;
+          let c = 1;
+          c = (i % cols) + 1;
+          r = Math.floor(i / cols) + 1;
+          if (solvedGrid[r - 1][c - 1] == 0) { // 0 tiles
+            button.textContent = "";
+            button.style.backgroundColor = "#48fab0";
+          } else if (solvedGrid[r - 1][c - 1] == 9) { // mines
+            button.textContent = "";
+            button.style.backgroundColor = "red";
+          } else { // everything else
+            button.textContent = solvedGrid[r - 1][c - 1];
+            button.style.backgroundColor = "#1fbf7c";
+          }
+        }
+        // show UI
+        const bigButton = document.createElement("button");
+        bigButton.id = "bigButton";
+        bigButton.textContent = "Try again?";
+        bigButton.style.backgroundColor = "red";
+        gridUI.parentNode.appendChild(bigButton);
+        gameOver = true;
+        bigButton.addEventListener("click", function() {
+          gameOver = false;
+          gameOn = false;
+          bigButton.remove();
+          // reset
+          for (let i = 0; i < gridUI.children.length; i++) {
+            const button = gridUI.children[i];
+            button.textContent = "";
+            button.style.backgroundColor = "#f5b651";
+          }
+        });
+      } else {
+        button.textContent = solvedGrid[row - 1][col - 1];
+        visGrid[row - 1][col - 1] = solvedGrid[row - 1][col - 1];
+        button.style.backgroundColor = "#1fbf7c";
+      }
+      
+      // check for win here
+      let arraysAreEqual = true;
+
+      for (let i = 0; i < rows; i++) {
+          for (let j = 0; j < cols; j++) {
+              if (visGrid[i][j] != solvedGrid[i][j]) {
+                  if (visGrid[i][j] != -1 || solvedGrid[i][j] != 9) {
+                      arraysAreEqual = false;
+                      break; // exit inner loop early
+                  }
+              }
+          }
+          if (!arraysAreEqual) break; // exit outer loop early
+      }
+      
+      if (arraysAreEqual) { // YOU WIN!
+        // show UI
+        const bigButton = document.createElement("button");
+        bigButton.id = "bigButton";
+        bigButton.textContent = "You Won!";
+        bigButton.style.backgroundColor = "#1fe615";
+        gridUI.parentNode.appendChild(bigButton);
+        gameOver = true;
+        bigButton.addEventListener("click", function() {
+          gameOver = false;
+          gameOn = false;
+          bigButton.remove();
+          // reset
+          for (let i = 0; i < gridUI.children.length; i++) {
+            const button = gridUI.children[i];
+            button.textContent = "";
+            button.style.backgroundColor = "#f5b651";
+          }
+        });
+      }
+    };
+    const flagged = function(row, col, button) {
+      if (button.textContent == "🚩") {
+        button.textContent = "";
+      } else if (visGrid[row - 1][col - 1] == -1) {
+        button.textContent = "🚩";
+      }
+    };
+    // create minesweeper buttons
+    for (let i = 0; i < (rows*cols); i++) {
+      const button = document.createElement("button");
+      button.textContent = "";
+      button.style.backgroundColor = "#f5b651";
+      let r = 1;
+      let c = 1;
+      c = (i % cols) + 1;
+      r = Math.floor(i / cols) + 1;
+      // tap to reveal
+      button.addEventListener("click", function() {
+        clicked(r, c, button, false);
+      });
+      // right click for flagging
+      button.addEventListener("contextmenu", function(e) {
+        e.preventDefault(); // prevent the browser's context menu from appearing
+        flagged(r, c, button);
+      });
+
+      // long press for flagging
+      let pressTimer;
+
+      button.addEventListener("mousedown", function(e) {
+        pressTimer = setTimeout(function() {
+          flagged(r, c, button);
+        }, 300); // 500ms threshold for long press
+      });
+      
+      button.addEventListener("mouseup", function(e) {
+        clearTimeout(pressTimer); // cancel if released too early
+      });
+      
+      button.addEventListener("mouseleave", function(e) {
+        clearTimeout(pressTimer); // cancel if mouse leaves button
+      });
+
+
+      gridUI.appendChild(button);
+    }
+  </script>
+</body>
+</html>
