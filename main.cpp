@@ -1,3 +1,5 @@
+// A simple text-based 5x5 minesweeper game in C++
+
 #include <iostream>
 #include <algorithm>
 #include <cstdlib> // for rand, srand
