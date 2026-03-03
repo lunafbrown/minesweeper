@@ -7,3 +7,4 @@ Logs:
   * custom board dimensions, custom mine percentage, quit option with win/loss stats
   * first guess is always a 0 tile unless the mine percentage is too high
   * mine count and controls print at the start of each round
+  * row and column labels show on both sides on larger boards
